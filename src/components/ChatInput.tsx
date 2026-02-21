@@ -8,8 +8,8 @@ interface ChatInputProps {
     onSubmit: (question: string) => void;
     isLoading: boolean;
     disabled: boolean;
-    dialect: 'postgres' | 'mysql' | 'sqlite';
-    onDialectChange: (dialect: 'postgres' | 'mysql' | 'sqlite') => void;
+    dialect: 'postgres' | 'mysql' | 'sqlite' | 'duckdb';
+    onDialectChange: (dialect: 'postgres' | 'mysql' | 'sqlite' | 'duckdb') => void;
     suggestions: string[];
 }
 
@@ -37,9 +37,10 @@ export function ChatInput({ onSubmit, isLoading, disabled, dialect, onDialectCha
                         { value: 'postgres', label: 'PostgreSQL' },
                         { value: 'mysql', label: 'MySQL' },
                         { value: 'sqlite', label: 'SQLite' },
+                        { value: 'duckdb', label: 'DuckDB' },
                     ]}
                     value={dialect}
-                    onChange={(val) => onDialectChange(val as 'postgres' | 'mysql' | 'sqlite')}
+                    onChange={(val) => onDialectChange(val as any)}
                     disabled={disabled || isLoading}
                     style={{ width: 120 }}
                 />

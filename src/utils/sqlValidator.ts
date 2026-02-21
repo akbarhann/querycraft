@@ -9,7 +9,7 @@ function cleanSqlIdentifier(name: string): string {
     return name.replace(/["'\[\]`]/g, '').toLowerCase().trim();
 }
 
-export function validateSql(rawSql: string, schema: SchemaMetadata, dialect: 'postgres' | 'mysql' | 'sqlite' = 'postgres'): string {
+export function validateSql(rawSql: string, schema: SchemaMetadata, dialect: 'postgres' | 'mysql' | 'sqlite' | 'duckdb' = 'postgres'): string {
     const sanitizedSql = rawSql.trim().replace(/^```(sql)?\n?|```$/gi, '');
 
     // For non-postgres dialects, we skip AST validation for now
@@ -34,7 +34,7 @@ export function validateSql(rawSql: string, schema: SchemaMetadata, dialect: 'po
         return '-- ERROR: Destructive queries are not permitted.';
     }
 
-    if (!upperSql.startsWith('SELECT')) {
+    if (!upperSql.startsWith('SELECT') && !upperSql.startsWith('-- ERROR') && !upperSql.startsWith('-- INFO')) {
         return '-- ERROR: Query must start with SELECT.';
     }
 

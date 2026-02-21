@@ -16,8 +16,9 @@ Core Rules:
 - Generate SELECT-only queries. Never INSERT, UPDATE, DELETE, DROP, ALTER, or TRUNCATE.
 - Use ONLY the tables and columns listed in the provided Schema Metadata. Do NOT invent column names.
 - If destructive queries are requested, return: -- ERROR: Destructive queries are not permitted.
-- If the question is impossible to answer from the schema, return: -- ERROR: Cannot answer this question from the available schema.
-- Output raw SQL only. No explanations, no markdown fences, no code blocks.
+- If the question is impossible to answer from the schema, return a friendly explanation starting with -- INFO:. 
+  Example: "-- INFO: It looks like your database doesn't have a 'Department' table. I can only see [List relevant tables]."
+- Output raw SQL or the -- INFO/-- ERROR message only. No explanations, no markdown fences, no code blocks.
 
 Handling Derived / Calculated Values:
 - Words like "revenue", "total sales", "profit", "earnings", "income", "pendapatan" are NOT real columns.
@@ -35,7 +36,7 @@ JOIN Strategy:
 export async function generateSql(
     userQuestion: string,
     schemaMetadata: SchemaMetadata,
-    dialect: 'postgres' | 'mysql' | 'sqlite' = 'postgres'
+    dialect: 'postgres' | 'mysql' | 'sqlite' | 'duckdb' = 'postgres'
 ): Promise<SqlGenerationResponse> {
     try {
         const compressedSchema = compressSchema(schemaMetadata);
@@ -43,7 +44,8 @@ export async function generateSql(
         const dialectPrompt = `You must generate valid ${dialect.toUpperCase()} SQL. 
         Note the quoting and syntax specific to ${dialect.toUpperCase()} (e.g. ${dialect === 'mysql' ? 'backticks for identifiers, LIMIT offset, count' :
                 dialect === 'sqlite' ? 'double quotes or no quotes for identifiers, LIMIT count OFFSET offset' :
-                    'double quotes for identifiers, LIMIT count OFFSET offset'
+                    dialect === 'duckdb' ? 'double quotes for identifiers, standard SQL syntax, LIMIT count OFFSET offset' :
+                        'double quotes for identifiers, LIMIT count OFFSET offset'
             }).`;
 
         const userPrompt = `

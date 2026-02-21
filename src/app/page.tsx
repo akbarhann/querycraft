@@ -9,35 +9,52 @@ import { SchemaMetadata, TokenUsage } from '../types/database';
 import { parseSqlSchema } from '../utils/parser';
 import { generateSql } from '../actions/generate-sql';
 import { generateSuggestions } from '../actions/generate-suggestions';
-import { AlertCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { parsePrismaSchema, parseCsvSchema } from '../actions/parse-schema';
+import { AlertCircle, CheckCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 
 export default function Home() {
     const [schemaMetadata, setSchemaMetadata] = useState<SchemaMetadata | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isParsingSchema, setIsParsingSchema] = useState(false);
     const [sqlResult, setSqlResult] = useState<string>('');
     const [errorMsg, setErrorMsg] = useState<string>('');
     const [uploadSuccess, setUploadSuccess] = useState(false);
     const [isSchemaOpen, setIsSchemaOpen] = useState(true);
-    const [dialect, setDialect] = useState<'postgres' | 'mysql' | 'sqlite'>('postgres');
+    const [dialect, setDialect] = useState<'postgres' | 'mysql' | 'sqlite' | 'duckdb'>('postgres');
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [sqlUsage, setSqlUsage] = useState<TokenUsage | null>(null);
     const [suggestionUsage, setSuggestionUsage] = useState<TokenUsage | null>(null);
 
-    const handleUpload = (sqlContent: string, uploadedName: string) => {
+    const handleUpload = async (content: string, uploadedName: string) => {
         try {
             setErrorMsg('');
             setUploadSuccess(false);
-            const metadata = parseSqlSchema(sqlContent);
-            if (metadata.tables.length === 0) {
-                setErrorMsg("No tables found in the uploaded SQL file. Ensure it contains standard CREATE TABLE syntax.");
+            setSqlUsage(null);
+
+            let metadata: SchemaMetadata;
+
+            if (uploadedName.toLowerCase().endsWith('.prisma') || uploadedName === 'Raw Prisma') {
+                setIsParsingSchema(true);
+                const result = await parsePrismaSchema(content);
+                metadata = result.schema;
+                setIsParsingSchema(false);
+            } else if (uploadedName.toLowerCase().endsWith('.csv') || uploadedName === 'Raw CSV') {
+                setIsParsingSchema(true);
+                metadata = await parseCsvSchema(content);
+                setIsParsingSchema(false);
+            } else {
+                metadata = parseSqlSchema(content);
+            }
+
+            if (!metadata.tables || metadata.tables.length === 0) {
+                setErrorMsg("No tables found in the uploaded content. Ensure it contains standard CREATE TABLE or Prisma model syntax.");
             } else {
                 setSchemaMetadata(metadata);
                 setFileName(uploadedName);
                 setSqlResult('');
                 setUploadSuccess(true);
                 setIsSchemaOpen(true);
-                setSqlUsage(null);
 
                 // Fetch suggestions using the cheap model
                 generateSuggestions(metadata).then(res => {
@@ -49,6 +66,7 @@ export default function Home() {
             setErrorMsg("Failed to parse schema: " + e.message);
             setSchemaMetadata(null);
             setFileName(null);
+            setIsParsingSchema(false);
         }
     };
 
@@ -102,7 +120,10 @@ export default function Home() {
 
             <Box style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <Paper withBorder p="md" radius="md" bg="dark.6">
-                    <Title order={5} mb="sm" fw={500}>1. Upload Schema Metadata</Title>
+                    <Group align="center" mb="sm">
+                        <Title order={5} fw={500}>1. Upload Schema Metadata</Title>
+                        {isParsingSchema && <Loader2 size={16} className="animate-spin" color="blue" />}
+                    </Group>
                     <SchemaUploader
                         fileName={fileName}
                         onUpload={handleUpload}
