@@ -89,44 +89,31 @@ Construct the SQL query based strictly on the above details.
         } catch (error: any) {
             console.warn('Groq API Error on Llama, falling back to moonshotai/kimi-k2-instruct-0905:', error.message);
 
-            // Fallback via OpenRouter
+            // Fallback to Kimi via Groq
             try {
-                const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'moonshotai/kimi-k2-instruct-0905',
-                        messages: [
-                            { role: 'system', content: SYSTEM_PROMPT },
-                            { role: 'user', content: userPrompt },
-                        ],
-                        temperature: 0.1,
-                        max_tokens: 1024,
-                        top_p: 1
-                    })
+                const fallbackCompletion = await groq.chat.completions.create({
+                    messages: [
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        { role: 'user', content: userPrompt },
+                    ],
+                    model: 'moonshotai/kimi-k2-instruct-0905',
+                    temperature: 0.1,
+                    max_tokens: 1024,
+                    top_p: 1,
                 });
 
-                if (!openRouterResponse.ok) {
-                    const errorText = await openRouterResponse.text();
-                    throw new Error(`OpenRouter API responded with status: ${openRouterResponse.status}, details: ${errorText}`);
-                }
-
-                const fallbackData = await openRouterResponse.json();
-                responseContent = fallbackData.choices[0]?.message?.content || '';
-                const fUsage = fallbackData.usage;
+                responseContent = fallbackCompletion.choices[0]?.message?.content || '';
+                const fUsage = fallbackCompletion.usage;
                 if (fUsage) {
                     usage = {
                         prompt_tokens: fUsage.prompt_tokens,
                         completion_tokens: fUsage.completion_tokens,
                         total_tokens: fUsage.total_tokens,
-                        model_name: fallbackData.model || 'moonshotai/kimi-k2-instruct-0905'
+                        model_name: fallbackCompletion.model || 'moonshotai/kimi-k2-instruct-0905'
                     };
                 }
             } catch (fallbackError: any) {
-                console.error('Fallback API Error:', fallbackError);
+                console.error('Fallback API Error (Kimi on Groq):', fallbackError);
                 return {
                     sql: `-- Error generating SQL: Both primary and fallback models failed. ${error.message} | ${fallbackError.message}`
                 };
