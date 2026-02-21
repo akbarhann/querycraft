@@ -34,7 +34,7 @@ export function validateSql(rawSql: string, schema: SchemaMetadata, dialect: 'po
         return '-- ERROR: Destructive queries are not permitted.';
     }
 
-    if (!upperSql.startsWith('SELECT')) {
+    if (!upperSql.startsWith('SELECT') && !upperSql.startsWith('-- ERROR') && !upperSql.startsWith('-- INFO')) {
         return '-- ERROR: Query must start with SELECT.';
     }
 
