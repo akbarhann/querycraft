@@ -9,7 +9,7 @@ function cleanSqlIdentifier(name: string): string {
     return name.replace(/["'\[\]`]/g, '').toLowerCase().trim();
 }
 
-export function validateSql(rawSql: string, schema: SchemaMetadata, dialect: 'postgres' | 'mysql' | 'sqlite' = 'postgres'): string {
+export function validateSql(rawSql: string, schema: SchemaMetadata, dialect: 'postgres' | 'mysql' | 'sqlite' | 'duckdb' = 'postgres'): string {
     const sanitizedSql = rawSql.trim().replace(/^```(sql)?\n?|```$/gi, '');
 
     // For non-postgres dialects, we skip AST validation for now

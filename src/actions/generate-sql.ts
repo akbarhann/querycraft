@@ -36,7 +36,7 @@ JOIN Strategy:
 export async function generateSql(
     userQuestion: string,
     schemaMetadata: SchemaMetadata,
-    dialect: 'postgres' | 'mysql' | 'sqlite' = 'postgres'
+    dialect: 'postgres' | 'mysql' | 'sqlite' | 'duckdb' = 'postgres'
 ): Promise<SqlGenerationResponse> {
     try {
         const compressedSchema = compressSchema(schemaMetadata);
@@ -44,7 +44,8 @@ export async function generateSql(
         const dialectPrompt = `You must generate valid ${dialect.toUpperCase()} SQL. 
         Note the quoting and syntax specific to ${dialect.toUpperCase()} (e.g. ${dialect === 'mysql' ? 'backticks for identifiers, LIMIT offset, count' :
                 dialect === 'sqlite' ? 'double quotes or no quotes for identifiers, LIMIT count OFFSET offset' :
-                    'double quotes for identifiers, LIMIT count OFFSET offset'
+                    dialect === 'duckdb' ? 'double quotes for identifiers, standard SQL syntax, LIMIT count OFFSET offset' :
+                        'double quotes for identifiers, LIMIT count OFFSET offset'
             }).`;
 
         const userPrompt = `
